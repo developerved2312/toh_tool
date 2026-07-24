@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower of Hanoi - Interactive Visualizer & Game</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for Victory Screen -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+            color: #f3f4f6;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(75, 85, 99, 0.5);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- Header Section -->
+    <header class="border-b border-gray-800/80 bg-gray-950/60 backdrop-blur px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600/20 text-indigo-400 p-2.5 rounded-xl border border-indigo-500/30">
+                    <i class="fa-solid fa-layer-group text-2xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        Tower of Hanoi
+                    </h1>
+                    <p class="text-xs text-gray-400">Interactive Algorithm Visualizer & CS Learning Studio</p>
+                </div>
+            </div>
+            <!-- Quick Stats -->
+            <div class="flex items-center gap-6 text-sm bg-gray-900/50 px-4 py-2 rounded-xl border border-gray-800">
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs font-semibold">MIN MOVES</span>
+                    <span class="text-indigo-400 font-bold" id="optimal-moves-badge">7</span>
+                </div>
+                <div class="h-6 w-[1px] bg-gray-800"></div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs font-semibold">YOUR MOVES</span>
+                    <span class="text-purple-400 font-bold" id="current-moves-badge">0</span>
+                </div>
+                <div class="h-6 w-[1px] bg-gray-800"></div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs font-semibold">DIFFICULTY</span>
+                    <span class="text-pink-400 font-bold" id="difficulty-badge">Easy</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Visualizer Arena (Canvas/Pegs) -->
+        <section class="lg:col-span-8 flex flex-col gap-4">
+            <!-- Stage container -->
+            <div class="bg-gray-950/40 border border-gray-800/80 rounded-2xl p-6 flex-grow flex flex-col justify-between shadow-2xl relative min-h-[400px] lg:min-h-[500px]">
+                
+                <!-- Status/Alert Message -->
+                <div class="absolute top-4 left-6 right-6 flex justify-between items-center z-10">
+                    <div id="status-text" class="text-sm font-medium text-gray-300 bg-gray-900/80 px-4 py-1.5 rounded-full border border-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        Ready to Begin
+                    </div>
+                    <!-- Audio & Help Controls -->
+                    <div class="flex gap-2">
+                        <button id="sound-toggle" class="p-2 bg-gray-900/80 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white border border-gray-800 transition" title="Toggle Sound">
+                            <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                        </button>
+                        <button id="guide-btn" class="p-2 bg-gray-900/80 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white border border-gray-800 transition" title="Show Legend">
+                            <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pegs & Disks Stage Area -->
+                <div class="relative w-full flex-grow flex items-end justify-around pt-24 pb-8" id="pegs-container">
+                    
+                    <!-- Peg A (Source) -->
+                    <div class="peg-hit-zone group flex flex-col justify-end items-center cursor-pointer w-1/3 h-full relative" data-peg="A" onclick="handlePegClick('A')">
+                        <!-- Vertical Rod -->
+                        <div class="peg-rod w-4 h-64 md:h-76 bg-gradient-to-b from-gray-700 to-gray-800 rounded-full group-hover:from-indigo-500 group-hover:to-indigo-600 transition-colors shadow-lg shadow-black/40 relative">
+                            <!-- Visual Ring highlight on top of peg when selected -->
+                            <div class="peg-ring-select hidden absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-3 rounded-full bg-indigo-400 border border-indigo-200 shadow-md"></div>
+                        </div>
+                        <!-- Peg Base -->
+                        <div class="w-3/4 h-3 bg-gray-800 rounded-t-lg group-hover:bg-indigo-900/50 transition-colors"></div>
+                        <!-- Peg Name Badge -->
+                        <span class="mt-2 text-xs font-bold text-gray-500 tracking-wider group-hover:text-indigo-400">PEG A <span class="text-[10px] font-normal text-gray-600">(SOURCE)</span></span>
+                    </div>
+
+                    <!-- Peg B (Auxiliary) -->
+                    <div class="peg-hit-zone group flex flex-col justify-end items-center cursor-pointer w-1/3 h-full relative" data-peg="B" onclick="handlePegClick('B')">
+                        <div class="peg-rod w-4 h-64 md:h-76 bg-gradient-to-b from-gray-700 to-gray-800 rounded-full group-hover:from-indigo-500 group-hover:to-indigo-600 transition-colors shadow-lg shadow-black/40 relative">
+                            <div class="peg-ring-select hidden absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-3 rounded-full bg-indigo-400 border border-indigo-200 shadow-md"></div>
+                        </div>
+                        <div class="w-3/4 h-3 bg-gray-800 rounded-t-lg group-hover:bg-indigo-900/50 transition-colors"></div>
+                        <span class="mt-2 text-xs font-bold text-gray-500 tracking-wider group-hover:text-indigo-400">PEG B <span class="text-[10px] font-normal text-gray-600">(SPARE)</span></span>
+                    </div>
+
+                    <!-- Peg C (Target) -->
+                    <div class="peg-hit-zone group flex flex-col justify-end items-center cursor-pointer w-1/3 h-full relative" data-peg="C" onclick="handlePegClick('C')">
+                        <div class="peg-rod w-4 h-64 md:h-76 bg-gradient-to-b from-gray-700 to-gray-800 rounded-full group-hover:from-indigo-500 group-hover:to-indigo-600 transition-colors shadow-lg shadow-black/40 relative">
+                            <div class="peg-ring-select hidden absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-3 rounded-full bg-indigo-400 border border-indigo-200 shadow-md"></div>
+                        </div>
+                        <div class="w-3/4 h-3 bg-gray-800 rounded-t-lg group-hover:bg-indigo-900/50 transition-colors"></div>
+                        <span class="mt-2 text-xs font-bold text-gray-500 tracking-wider group-hover:text-indigo-400">PEG C <span class="text-[10px] font-normal text-gray-600">(TARGET)</span></span>
+                    </div>
+
+                    <!-- Dynamic Disk Container (Where absolute positioned disks render) -->
+                    <div id="disks-container" class="absolute inset-x-0 bottom-11 top-24 pointer-events-none">
+                        <!-- Disks rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- Custom Sound Effect Chime Switch / Manual Mode Hints -->
+                <div class="border-t border-gray-900 pt-4 flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-2">
+                    <span id="interaction-instructions"><i class="fa-solid fa-circle-info text-indigo-400 mr-1.5"></i> Click any peg to select its top disk, then click another peg to complete move.</span>
+                    <span id="current-state-text" class="font-semibold tracking-wider text-indigo-400 uppercase">State: Active</span>
+                </div>
+            </div>
+
+            <!-- Visual Controller Console / Player -->
+            <div class="bg-gray-950/60 border border-gray-800 px-6 py-4 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+                
+                <!-- Speed Slider -->
+                <div class="flex items-center gap-3 w-full md:w-1/4">
+                    <i class="fa-solid fa-gauge-high text-gray-500 text-sm"></i>
+                    <div class="flex-grow flex flex-col">
+                        <span class="text-[10px] text-gray-500 font-semibold tracking-wider">ANIMATION DELAY</span>
+                        <div class="flex items-center gap-2">
+                            <input id="speed-slider" type="range" min="100" max="2000" step="100" value="600" class="w-full accent-indigo-500 h-1 bg-gray-800 rounded-lg cursor-pointer">
+                            <span id="speed-display" class="text-xs font-mono text-gray-400 w-12 text-right">0.6s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Solver Controls / Media Playback Deck -->
+                <div class="flex items-center gap-3" id="player-deck">
+                    <button id="btn-skip-start" class="p-3 bg-gray-900 hover:bg-gray-800 text-gray-300 rounded-xl border border-gray-800 transition shadow-lg active:scale-95 disabled:opacity-40" title="Rewind to Start">
+                        <i class="fa-solid fa-backward-fast"></i>
+                    </button>
+                    <button id="btn-step-back" class="p-3 bg-gray-900 hover:bg-gray-800 text-gray-300 rounded-xl border border-gray-800 transition shadow-lg active:scale-95 disabled:opacity-40" title="Step Backward">
+                        <i class="fa-solid fa-backward-step"></i>
+                    </button>
+                    <!-- Play/Pause is the focus -->
+                    <button id="btn-play-pause" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-2 border border-indigo-400/20 disabled:opacity-40" title="Start Auto Solver">
+                        <i id="play-icon" class="fa-solid fa-play"></i> <span id="play-text">Auto Solve</span>
+                    </button>
+                    <button id="btn-step-next" class="p-3 bg-gray-900 hover:bg-gray-800 text-gray-300 rounded-xl border border-gray-800 transition shadow-lg active:scale-95 disabled:opacity-40" title="Step Forward">
+                        <i class="fa-solid fa-forward-step"></i>
+                    </button>
+                    <button id="btn-skip-end" class="p-3 bg-gray-900 hover:bg-gray-800 text-gray-300 rounded-xl border border-gray-800 transition shadow-lg active:scale-95 disabled:opacity-40" title="Fast Forward to Finish">
+                        <i class="fa-solid fa-forward-fast"></i>
+                    </button>
+                </div>
+
+                <!-- Mode Select / Reset -->
+                <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <button id="btn-reset" class="px-4 py-2.5 bg-rose-950/20 text-rose-400 hover:bg-rose-900/30 border border-rose-800/40 rounded-xl font-medium text-sm transition active:scale-95" onclick="resetEngine()">
+                        <i class="fa-solid fa-rotate-right mr-1.5"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Settings, Pseudo Code & Step Log -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Quick Config Box -->
+            <div class="bg-gray-950/40 border border-gray-800/80 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-sm font-bold tracking-wider text-gray-400 uppercase mb-4 flex items-center justify-between">
+                    <span>Configure Puzzle</span>
+                    <i class="fa-solid fa-sliders text-indigo-400"></i>
+                </h2>
+                
+                <div class="flex flex-col gap-4">
+                    <!-- Choose Number of Disks -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-2">NUMBER OF DISKS: <span id="disk-count-val" class="text-indigo-400 font-bold">4</span></label>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-600 font-bold">3</span>
+                            <input id="disk-count-input" type="range" min="3" max="8" value="4" class="flex-grow accent-indigo-500 h-1 bg-gray-800 rounded-lg cursor-pointer">
+                            <span class="text-xs text-gray-600 font-bold">8</span>
+                        </div>
+                    </div>
+
+                    <!-- Play Mode Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-2">PLAY SYSTEM</label>
+                        <div class="grid grid-cols-2 gap-2 bg-gray-900 p-1 rounded-xl border border-gray-800">
+                            <button id="mode-manual" class="py-2 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 bg-indigo-600 text-white" onclick="switchMode('manual')">
+                                <i class="fa-solid fa-gamepad"></i> Manual Play
+                            </button>
+                            <button id="mode-auto" class="py-2 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition flex items-center justify-center gap-2" onclick="switchMode('auto')">
+                                <i class="fa-solid fa-robot"></i> Solver Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Algorithm Tracker Panel (Pseudo-code + Call Stack) -->
+            <div id="alg-visualizer-panel" class="bg-gray-950/40 border border-gray-800/80 rounded-2xl p-5 shadow-xl flex-grow flex flex-col justify-between hidden">
+                <div>
+                    <h2 class="text-sm font-bold tracking-wider text-gray-400 uppercase mb-3 flex items-center justify-between">
+                        <span>Active Trace Pseudo-code</span>
+                        <span class="text-[10px] bg-indigo-900/50 text-indigo-400 px-2 py-0.5 rounded border border-indigo-800 code-font">Recursion</span>
+                    </h2>
+
+                    <!-- Code window -->
+                    <div class="code-font text-[11px] leading-relaxed bg-gray-900/90 rounded-xl p-4 border border-gray-800 text-gray-400 select-none">
+                        <div id="code-line-1" class="px-2 py-0.5 rounded transition">void hanoi(int n, char src, char tgt, char aux) {</div>
+                        <div id="code-line-2" class="px-2 py-0.5 rounded transition pl-4">if (n == 1) {</div>
+                        <div id="code-line-3" class="px-2 py-0.5 rounded transition pl-8 text-indigo-300">moveDisk(src, tgt);</div>
+                        <div id="code-line-4" class="px-2 py-0.5 rounded transition pl-8">return;</div>
+                        <div id="code-line-5" class="px-2 py-0.5 rounded transition pl-4">}</div>
+                        <div id="code-line-6" class="px-2 py-0.5 rounded transition pl-4 text-emerald-400">hanoi(n - 1, src, aux, tgt);</div>
+                        <div id="code-line-7" class="px-2 py-0.5 rounded transition pl-4 text-indigo-300">moveDisk(src, tgt);</div>
+                        <div id="code-line-8" class="px-2 py-0.5 rounded transition pl-4 text-pink-400">hanoi(n - 1, aux, tgt, src);</div>
+                        <div id="code-line-9" class="px-2 py-0.5 rounded transition">}</div>
+                    </div>
+                </div>
+
+                <!-- Call Stack Visualizer -->
+                <div class="mt-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Simulated Call Stack</h3>
+                    <div id="call-stack" class="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto pr-2">
+                        <!-- Simulated stack layers rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Move History Log (Always visible) -->
+            <div class="bg-gray-950/40 border border-gray-800/80 rounded-2xl p-5 shadow-xl h-64 flex flex-col">
+                <h2 class="text-sm font-bold tracking-wider text-gray-400 uppercase mb-3 flex items-center justify-between">
+                    <span>Move History Log</span>
+                    <span id="log-count" class="text-xs bg-gray-900 text-gray-400 px-2 py-0.5 rounded font-mono">0 / 15</span>
+                </h2>
+                <!-- Scrollable Log Container -->
+                <div id="moves-log-container" class="flex-grow overflow-y-auto flex flex-col gap-2 pr-1 text-xs text-gray-400 code-font">
+                    <!-- Log lines -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-900 bg-gray-950/80 px-6 py-4 text-center text-xs text-gray-600">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>&copy; Tower of Hanoi Explorer - Visual CS Lab.</span>
+            <div class="flex gap-4">
+                <a href="#" onclick="showQuickInstructions(event)" class="hover:text-indigo-400 transition">Interactive Instructions</a>
+                <span class="text-gray-800">|</span>
+                <span class="text-indigo-500 font-semibold">Recursive Complexity: <span class="text-pink-500 font-mono">O(2ⁿ - 1)</span></span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- User Help Modal -->
+    <div id="instructions-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl" onclick="closeModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
+                <i class="fa-solid fa-circle-question"></i> Rules of the Game
+            </h3>
+            <div class="text-sm text-gray-300 space-y-3 leading-relaxed mb-6">
+                <p>The objective of the puzzle is to move the entire stack of disks from <strong class="text-indigo-400">Peg A</strong> to <strong class="text-pink-400">Peg C</strong>, obeying three simple rules:</p>
+                <ul class="list-decimal list-inside space-y-2 pl-2">
+                    <li>Only <strong class="text-white">one disk</strong> can be moved at a time.</li>
+                    <li>Each move consists of taking the upper disk from one of the stacks and placing it on top of another stack or on an empty peg.</li>
+                    <li>No larger disk may be placed on top of a <strong class="text-emerald-400">smaller disk</strong>.</li>
+                </ul>
+                <p class="text-xs text-gray-400 bg-gray-950 p-3 rounded-lg border border-gray-800/60 mt-3">
+                    💡 <strong>Pro-Tip:</strong> In "Manual Play" mode, select a peg to highlight its topmost disk, then tap the destination peg to drop it! Turn on the synthesizer sound toggle to hear the landing feedback.
+                </p>
+            </div>
+            <button class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition shadow-lg shadow-indigo-600/10 active:scale-[0.98]" onclick="closeModal()">
+                Got it, Let's Play!
+            </button>
+        </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-md w-full p-8 text-center shadow-2xl relative overflow-hidden">
+            <!-- Absolute background glow -->
+            <div class="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl"></div>
+
+            <div class="text-6xl text-emerald-400 mb-4 animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h3 class="text-2xl font-black mb-2 text-white">Outstanding Victory!</h3>
+            <p class="text-sm text-gray-400 mb-6">You successfully completed the Tower of Hanoi challenge!</p>
+
+            <!-- Score breakdown grid -->
+            <div class="grid grid-cols-2 gap-4 bg-gray-950 p-4 rounded-2xl border border-gray-800/80 mb-6 text-sm">
+                <div>
+                    <span class="block text-gray-500 text-xs font-semibold">YOUR MOVES</span>
+                    <strong class="text-xl text-purple-400" id="victory-moves">0</strong>
+                </div>
+                <div>
+                    <span class="block text-gray-500 text-xs font-semibold">OPTIMAL MOVES</span>
+                    <strong class="text-xl text-indigo-400" id="victory-optimal">0</strong>
+                </div>
+            </div>
+
+            <button class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition shadow-lg active:scale-[0.98]" onclick="closeVictoryModal()">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN ENGINE CODE -->
+    <script>
+        // System variables & State Configurations
+        let numDisks = 4;
+        let playMode = 'manual'; // 'manual' or 'auto'
+        let speedMs = 600; // Animation step speed
+        let soundEnabled = true;
+
+        // Visual Layout Properties (must match styling offsets)
+        const PEG_HEIGHT = 280; // approximate pixel height of rods for lifts
+        const DISK_HEIGHT = 26; // Height of each disk inside peg
+
+        // Peg X position mappings in terms of percentage for relative absolute plotting
+        const PEG_X_POSITIONS = {
+            'A': 16.66,
+            'B': 50.00,
+            'C': 83.33
+        };
+
+        // Disk color spectrum palette (Gradient sets)
+        const diskColors = [
+            'from-rose-500 to-rose-600 shadow-rose-500/10',     // Disk 1 (Smallest)
+            'from-amber-500 to-amber-600 shadow-amber-500/10',   // Disk 2
+            'from-yellow-400 to-yellow-500 shadow-yellow-400/10', // Disk 3
+            'from-emerald-500 to-emerald-600 shadow-emerald-500/10', // Disk 4
+            'from-cyan-500 to-cyan-600 shadow-cyan-500/10',     // Disk 5
+            'from-indigo-500 to-indigo-600 shadow-indigo-500/10', // Disk 6
+            'from-purple-500 to-purple-600 shadow-purple-500/10', // Disk 7
+            'from-pink-500 to-pink-600 shadow-pink-500/10'      // Disk 8 (Largest possible)
+        ];
+
+        // Engine Board State: lists represent disk index sizes (e.g. 1 is smallest, 8 is largest)
+        // Stored bottom-to-top (last element is top of stack)
+        let boardState = {
+            'A': [],
+            'B': [],
+            'C': []
+        };
+
+        // Selection state for manual mode
+        let selectedPeg = null;
+
+        // Auto-solver variables
+        let precomputedMoves = []; // Entire trace of solver moves
+        let currentMoveIndex = -1; // Current index in solver timeline
+        let isPlaying = false;
+        let isAnimating = false; // block fast click interactions during step animation sequences
+
+        // Sound Engine synthesizer using Web Audio API
+        function playChime(pitch = 220) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(pitch, ctx.currentTime);
+                
+                // Pure exponential volume decay to model a chime/bell
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.35);
+            } catch (e) {
+                console.log("Audio contexts blocked or unsupported on initial interaction", e);
+            }
+        }
+
+        // Initialize Everything on Load
+        window.onload = () => {
+            initInputs();
+            resetEngine();
+        };
+
+        // Hook DOM controller inputs
+        function initInputs() {
+            // Disk Count change
+            const diskInput = document.getElementById('disk-count-input');
+            diskInput.addEventListener('input', (e) => {
+                numDisks = parseInt(e.target.value);
+                document.getElementById('disk-count-val').innerText = numDisks;
+                resetEngine();
+            });
+
+            // Speed Range Slider
+            const speedSlider = document.getElementById('speed-slider');
+            speedSlider.addEventListener('input', (e) => {
+                speedMs = parseInt(e.target.value);
+                const displaySeconds = (speedMs / 1000).toFixed(1);
+                document.getElementById('speed-display').innerText = `${displaySeconds}s`;
+            });
+
+            // Sound controller
+            const soundBtn = document.getElementById('sound-toggle');
+            soundBtn.addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                const icon = document.getElementById('sound-icon');
+                if (soundEnabled) {
+                    icon.className = "fa-solid fa-volume-high";
+                    playChime(440);
+                } else {
+                    icon.className = "fa-solid fa-volume-xmark";
+                }
+            });
+
+            // Playback Deck Actions
+            document.getElementById('btn-play-pause').addEventListener('click', togglePlayback);
+            document.getElementById('btn-step-next').addEventListener('click', () => stepTimeline(1));
+            document.getElementById('btn-step-back').addEventListener('click', () => stepTimeline(-1));
+            document.getElementById('btn-skip-start').addEventListener('click', () => jumpTimeline(0));
+            document.getElementById('btn-skip-end').addEventListener('click', () => jumpTimeline(precomputedMoves.length));
+        }
+
+        // Switch modes between manual game and algorithmic analyzer
+        function switchMode(mode) {
+            if (isAnimating) return; // Wait until animation sequence ends
+            
+            // Halt current playback sequence
+            pausePlayback();
+
+            playMode = mode;
+            
+            const btnManual = document.getElementById('mode-manual');
+            const btnAuto = document.getElementById('mode-auto');
+            const visualizerPanel = document.getElementById('alg-visualizer-panel');
+            const playerDeck = document.getElementById('player-deck');
+            const instructions = document.getElementById('interaction-instructions');
+
+            if (mode === 'manual') {
+                btnManual.className = "py-2 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 bg-indigo-600 text-white";
+                btnAuto.className = "py-2 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition flex items-center justify-center gap-2";
+                visualizerPanel.classList.add('hidden');
+                playerDeck.classList.add('hidden');
+                instructions.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-400 mr-1.5"></i> Click any peg to select its top disk, then click another peg to complete move.`;
+            } else {
+                btnAuto.className = "py-2 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 bg-indigo-600 text-white";
+                btnManual.className = "py-2 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition flex items-center justify-center gap-2";
+                visualizerPanel.classList.remove('hidden');
+                playerDeck.classList.remove('hidden');
+                instructions.innerHTML = `<i class="fa-solid fa-microchip text-emerald-400 mr-1.5"></i> Auto-Solver mode. Control timeline steps using the playback controller below.`;
+            }
+
+            resetEngine();
+        }
+
+        // Reset states and draw pristine fresh canvas
+        function resetEngine() {
+            pausePlayback();
+            isAnimating = false;
+            selectedPeg = null;
+            
+            // Build fresh clean source stack
+            boardState = {
+                'A': [],
+                'B': [],
+                'C': []
+            };
+            for (let i = numDisks; i >= 1; i--) {
+                boardState['A'].push(i);
+            }
+
+            // Clean move states
+            const optimalCount = Math.pow(2, numDisks) - 1;
+            document.getElementById('optimal-moves-badge').innerText = optimalCount;
+            document.getElementById('current-moves-badge').innerText = "0";
+
+            const diffBadge = document.getElementById('difficulty-badge');
+            if (numDisks <= 4) {
+                diffBadge.innerText = "Easy";
+                diffBadge.className = "text-emerald-400 font-bold";
+            } else if (numDisks <= 6) {
+                diffBadge.innerText = "Medium";
+                diffBadge.className = "text-amber-400 font-bold";
+            } else {
+                diffBadge.innerText = "Hard";
+                diffBadge.className = "text-rose-500 font-bold font-black";
+            }
+
+            // Pre-compute perfect solutions if in Auto mode
+            if (playMode === 'auto') {
+                precomputedMoves = [];
+                currentMoveIndex = -1;
+                generateOptimalHanoiSequence(numDisks, 'A', 'C', 'B');
+                updateLogView();
+                updateCallStackView([]);
+            } else {
+                precomputedMoves = [];
+                currentMoveIndex = -1;
+                updateLogView();
+            }
+
+            // Draw pristine disks
+            renderDisks();
+            updateHighlightPegs();
+            updatePlaybackButtons();
+            
+            const stateText = document.getElementById('current-state-text');
+            stateText.innerText = "State: Reset & Ready";
+            stateText.className = "font-semibold tracking-wider text-indigo-400 uppercase";
+
+            const status = document.getElementById('status-text');
+            status.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Ready`;
+        }
+
+        // Recursively pre-compute optimal moves and trace elements
+        function generateOptimalHanoiSequence(n, src, tgt, aux, depth = 0) {
+            if (n === 1) {
+                precomputedMoves.push({
+                    disk: 1,
+                    from: src,
+                    to: tgt,
+                    codeLine: 3, // Matches line 3 of visible pseudo-code (base case move)
+                    stackSnapshot: [
+                        { call: `hanoi(1, ${src}, ${tgt}, ${aux})`, isActive: true },
+                        ...buildStaticAncestorStack(n, depth, src, tgt, aux)
+                    ]
+                });
+                return;
+            }
+            
+            generateOptimalHanoiSequence(n - 1, src, aux, tgt, depth + 1);
+            
+            precomputedMoves.push({
+                disk: n,
+                from: src,
+                to: tgt,
+                codeLine: 7, // Matches line 7 of visible pseudo-code (recursive middle step)
+                stackSnapshot: [
+                    { call: `hanoi(${n}, ${src}, ${tgt}, ${aux})`, isActive: true },
+                    ...buildStaticAncestorStack(n, depth, src, tgt, aux)
+                ]
+            });
+            
+            generateOptimalHanoiSequence(n - 1, aux, tgt, src, depth + 1);
+        }
+
+        // Helper to construct simulated call ancestors for visual stack debugging
+        function buildStaticAncestorStack(currentN, depth, s, t, a) {
+            const list = [];
+            let i = currentN + 1;
+            while (i <= numDisks) {
+                list.push({ call: `hanoi(${i}, ${s}, ${t}, ${a})`, isActive: false });
+                i++;
+            }
+            return list;
+        }
+
+        // Clean layout renderer for disks
+        function renderDisks() {
+            const container = document.getElementById('disks-container');
+            container.innerHTML = '';
+
+            // Render all pegs and calculate absolute disk slots
+            const pegs = ['A', 'B', 'C'];
+            pegs.forEach(peg => {
+                const stack = boardState[peg];
+                stack.forEach((diskVal, index) => {
+                    const diskEl = document.createElement('div');
+                    diskEl.id = `disk-${diskVal}`;
+                    diskEl.className = `absolute rounded-lg bg-gradient-to-r ${diskColors[diskVal - 1]} h-[22px] md:h-[26px] border border-white/20 shadow-md text-[10px] md:text-xs font-bold text-white flex items-center justify-center select-none cursor-pointer`;
+                    
+                    // Base width calculated proportional to disk level
+                    const diskWidth = getDiskWidth(diskVal);
+                    diskEl.style.width = `${diskWidth}px`;
+                    
+                    // Initial spatial coordinates based on peg position and stack offset
+                    diskEl.style.left = `calc(${PEG_X_POSITIONS[peg]}% - ${diskWidth / 2}px)`;
+                    diskEl.style.bottom = `${index * DISK_HEIGHT}px`;
+                    
+                    // Inside labels
+                    diskEl.innerText = diskVal;
+                    
+                    container.appendChild(diskEl);
+                });
+            });
+        }
+
+        // Calculates variable disk sizing
+        function getDiskWidth(val) {
+            const minWidth = 55;
+            const maxWidth = 190;
+            const steps = numDisks > 1 ? (maxWidth - minWidth) / (numDisks - 1) : 0;
+            return minWidth + (val - 1) * steps;
+        }
+
+        // Peg Highlighting and Selected Stack visual logic
+        function updateHighlightPegs() {
+            const pegZones = document.querySelectorAll('.peg-hit-zone');
+            pegZones.forEach(zone => {
+                const pegId = zone.getAttribute('data-peg');
+                const isSelected = selectedPeg === pegId;
+                const ring = zone.querySelector('.peg-ring-select');
+                const rod = zone.querySelector('.peg-rod');
+
+                if (isSelected) {
+                    ring.classList.remove('hidden');
+                    rod.classList.remove('from-gray-700', 'to-gray-800');
+                    rod.classList.add('from-indigo-500', 'to-indigo-600', 'ring-4', 'ring-indigo-500/20');
+                    
+                    // Apply hover offset animation to the selected top disk
+                    const topDiskVal = getTopDisk(pegId);
+                    if (topDiskVal) {
+                        const topDiskEl = document.getElementById(`disk-${topDiskVal}`);
+                        if (topDiskEl) {
+                            const currentStackIndex = boardState[pegId].indexOf(topDiskVal);
+                            topDiskEl.style.transition = 'bottom 0.15s ease-out';
+                            topDiskEl.style.bottom = `${(currentStackIndex * DISK_HEIGHT) + 15}px`;
+                            topDiskEl.classList.add('ring-2', 'ring-white', 'shadow-2xl');
+                        }
+                    }
+                } else {
+                    ring.classList.add('hidden');
+                    rod.className = "peg-rod w-4 h-64 md:h-76 bg-gradient-to-b from-gray-700 to-gray-800 rounded-full group-hover:from-indigo-500 group-hover:to-indigo-600 transition-colors shadow-lg shadow-black/40 relative";
+                    
+                    // Revert any top disks not selected
+                    const topDiskVal = getTopDisk(pegId);
+                    if (topDiskVal) {
+                        const topDiskEl = document.getElementById(`disk-${topDiskVal}`);
+                        if (topDiskEl) {
+                            const currentStackIndex = boardState[pegId].indexOf(topDiskVal);
+                            topDiskEl.style.transition = 'bottom 0.15s ease-out';
+                            topDiskEl.style.bottom = `${currentStackIndex * DISK_HEIGHT}px`;
+                            topDiskEl.classList.remove('ring-2', 'ring-white', 'shadow-2xl');
+                        }
+                    }
+                }
+            });
+        }
+
+        function getTopDisk(peg) {
+            const stack = boardState[peg];
+            return stack.length > 0 ? stack[stack.length - 1] : null;
+        }
+
+        // Helper to delay processes gracefully
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Smooth physical translation of disks inside viewport with promise resolving
+        async function runPhysicsAnimation(diskId, fromPeg, toPeg, targetIndex) {
+            return new Promise(async (resolve) => {
+                const disk = document.getElementById(`disk-${diskId}`);
+                if (!disk) {
+                    resolve();
+                    return;
+                }
+
+                // 3 part choreography: Lift up, slide sideways, drop down
+                const durationOneThird = speedMs / 3;
+
+                // 1. Lift Up vertically to clear rods
+                disk.style.transition = `bottom ${durationOneThird}ms cubic-bezier(0.25, 1, 0.5, 1)`;
+                disk.style.bottom = `${PEG_HEIGHT + 10}px`;
+                playChime(300 + (diskId * 40));
+                await sleep(durationOneThird);
+
+                // 2. Slide horizontally
+                const diskWidth = getDiskWidth(diskId);
+                disk.style.transition = `left ${durationOneThird}ms cubic-bezier(0.76, 0, 0.24, 1)`;
+                disk.style.left = `calc(${PEG_X_POSITIONS[toPeg]}% - ${diskWidth / 2}px)`;
+                await sleep(durationOneThird);
+
+                // 3. Drop down
+                disk.style.transition = `bottom ${durationOneThird}ms cubic-bezier(0.11, 0, 0.5, 0)];`;
+                disk.style.bottom = `${targetIndex * DISK_HEIGHT}px`;
+                await sleep(durationOneThird);
+
+                // Quick landing tone
+                playChime(220 + (diskId * 20));
+                
+                // Clear active transitions and snap position
+                disk.style.transition = 'none';
+                resolve();
+            });
+        }
+
+        // Direct instantaneous snap render (skips animation delays on fast forward/backward jumps)
+        function snapDisksInstant() {
+            renderDisks();
+        }
+
+        // Handles Mouse Click / Mobile Taps on peg columns
+        async function handlePegClick(peg) {
+            if (playMode !== 'manual' || isAnimating) return;
+
+            if (selectedPeg === null) {
+                // Try selecting top disk fromclicked column
+                const topDisk = getTopDisk(peg);
+                if (topDisk) {
+                    selectedPeg = peg;
+                    updateHighlightPegs();
+                } else {
+                    // Empty peg selection - shake effect
+                    showStatusMessage("Peg is empty", "warning");
+                    playChime(150);
+                }
+            } else {
+                // If clicking same peg, deselect it
+                if (selectedPeg === peg) {
+                    selectedPeg = null;
+                    updateHighlightPegs();
+                    return;
+                }
+
+                // Move selected disk to target peg
+                const sourcePeg = selectedPeg;
+                const targetPeg = peg;
+                const diskToMove = getTopDisk(sourcePeg);
+                const targetTopDisk = getTopDisk(targetPeg);
+
+                // Verify Rule constraint: Smaller cannot sit on larger
+                if (targetTopDisk !== null && diskToMove > targetTopDisk) {
+                    showStatusMessage("Invalid Move: Larger disk on top of smaller disk!", "error");
+                    // Trigger dynamic error chime
+                    playChime(100);
+                    // Reset selection
+                    selectedPeg = null;
+                    updateHighlightPegs();
+                    return;
+                }
+
+                // Proceed with successful move
+                selectedPeg = null;
+                isAnimating = true;
+                updateHighlightPegs();
+
+                // State update
+                boardState[sourcePeg].pop();
+                const targetIndex = boardState[targetPeg].length;
+                boardState[targetPeg].push(diskToMove);
+
+                // Render dynamic translation
+                await runPhysicsAnimation(diskToMove, sourcePeg, targetPeg, targetIndex);
+                
+                // Increment score/move metrics
+                const movesCountEl = document.getElementById('current-moves-badge');
+                let count = parseInt(movesCountEl.innerText) + 1;
+                movesCountEl.innerText = count;
+
+                // Save move sequence to UI log
+                addMoveToLog(count, diskToMove, sourcePeg, targetPeg);
+
+                isAnimating = false;
+                showStatusMessage(`Moved Disk ${diskToMove} to Peg ${targetPeg}`, "success");
+
+                // Check Win scenario
+                if (boardState['C'].length === numDisks) {
+                    handleVictory(count);
+                }
+            }
+        }
+
+        // Visual alerts status message
+        function showStatusMessage(text, type = "success") {
+            const status = document.getElementById('status-text');
+            let colorDot = "bg-emerald-500";
+            if (type === "error") colorDot = "bg-rose-500 animate-ping";
+            if (type === "warning") colorDot = "bg-amber-400";
+            
+            status.innerHTML = `<span class="w-2 h-2 rounded-full ${colorDot}"></span> ${text}`;
+        }
+
+        // Trigger glorious confetti and show stats modal
+        function handleVictory(moves) {
+            playChime(523); // high high chord C5
+            setTimeout(() => playChime(659), 150); // E5
+            setTimeout(() => playChime(784), 300); // G5
+            setTimeout(() => playChime(1046), 450); // C6
+
+            // Confetti cascade
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+
+            document.getElementById('victory-moves').innerText = moves;
+            const optimalCount = Math.pow(2, numDisks) - 1;
+            document.getElementById('victory-optimal').innerText = optimalCount;
+            document.getElementById('victory-modal').classList.remove('hidden');
+
+            const stateText = document.getElementById('current-state-text');
+            stateText.innerText = "State: Puzzle Solved!";
+            stateText.className = "font-semibold tracking-wider text-emerald-400 uppercase";
+        }
+
+        function closeVictoryModal() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            resetEngine();
+        }
+
+        // Visual Logger generator
+        function addMoveToLog(moveNum, disk, from, to) {
+            const logContainer = document.getElementById('moves-log-container');
+            const entry = document.createElement('div');
+            entry.className = "flex justify-between items-center bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800 hover:border-gray-700 transition";
+            entry.innerHTML = `
+                <span class="text-indigo-400 font-bold">#${moveNum}</span>
+                <span class="text-gray-300">Disk ${disk}</span>
+                <span class="text-gray-500">→</span>
+                <span class="font-semibold text-pink-400">${from} to ${to}</span>
+            `;
+            logContainer.appendChild(entry);
+            // Autoscroll
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Timeline management for Auto Solver Playback Engine
+        function updateLogView() {
+            const logContainer = document.getElementById('moves-log-container');
+            logContainer.innerHTML = '';
+            
+            const badgeCount = document.getElementById('log-count');
+            badgeCount.innerText = `${currentMoveIndex + 1} / ${precomputedMoves.length}`;
+
+            if (playMode !== 'auto') {
+                return;
+            }
+
+            precomputedMoves.forEach((move, index) => {
+                const entry = document.createElement('div');
+                const isCompleted = index <= currentMoveIndex;
+                const isCurrent = index === currentMoveIndex;
+                
+                let textStyle = "text-gray-600";
+                let bgStyle = "bg-transparent border-transparent";
+                
+                if (isCurrent) {
+                    textStyle = "text-indigo-300 font-bold";
+                    bgStyle = "bg-indigo-950/40 border-indigo-900/60";
+                } else if (isCompleted) {
+                    textStyle = "text-gray-400";
+                    bgStyle = "bg-gray-900/40 border-gray-800/40";
+                }
+
+                entry.className = `flex justify-between items-center px-3 py-1.5 rounded-lg border transition ${bgStyle} ${textStyle}`;
+                entry.innerHTML = `
+                    <span class="font-bold">#${index + 1}</span>
+                    <span>Disk ${move.disk}</span>
+                    <span>${move.from} <i class="fa-solid fa-arrow-right-long text-[10px] mx-1 text-gray-500"></i> ${move.to}</span>
+                `;
+                logContainer.appendChild(entry);
+            });
+
+            // Smooth Scroll active log entry to viewport center
+            if (currentMoveIndex >= 0) {
+                const activeEl = logContainer.children[currentMoveIndex];
+                if (activeEl) {
+                    logContainer.scrollTop = activeEl.offsetTop - logContainer.offsetTop - 50;
+                }
+            }
+        }
+
+        // Highlights code tracing window based on index
+        function updatePseudoCodeHighlight(lineNum) {
+            for (let i = 1; i <= 9; i++) {
+                const element = document.getElementById(`code-line-${i}`);
+                if (i === lineNum) {
+                    element.className = "px-2 py-0.5 rounded pl-4 bg-indigo-500/20 text-indigo-200 border-l-2 border-indigo-500 font-bold";
+                } else {
+                    // Normal style hierarchy recovery
+                    let pad = "pl-4";
+                    if (i === 1 || i === 9) pad = "";
+                    if (i === 3 || i === 4) pad = "pl-8";
+                    element.className = `px-2 py-0.5 rounded transition ${pad} text-gray-500`;
+                }
+            }
+        }
+
+        // Live stack debugging view
+        function updateCallStackView(stackSnapshot) {
+            const container = document.getElementById('call-stack');
+            container.innerHTML = '';
+            
+            if (stackSnapshot.length === 0) {
+                container.innerHTML = '<span class="text-xs text-gray-600 italic">Call Stack Empty. Start solving to inspect frames.</span>';
+                return;
+            }
+
+            stackSnapshot.forEach(frame => {
+                const el = document.createElement('div');
+                const activeStyle = frame.isActive 
+                    ? "bg-emerald-950/50 border-emerald-800/60 text-emerald-400 font-semibold shadow-inner" 
+                    : "bg-gray-900/40 border-gray-800/60 text-gray-500";
+                
+                el.className = `px-3 py-1 rounded-lg border text-xs code-font flex justify-between items-center transition ${activeStyle}`;
+                el.innerHTML = `
+                    <span>${frame.call}</span>
+                    ${frame.isActive ? '<span class="text-[10px] uppercase font-bold tracking-wider bg-emerald-500/20 px-1.5 py-0.5 rounded">Active</span>' : ''}
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        // Manage Media Deck Controller Buttons State
+        function updatePlaybackButtons() {
+            const btnPlay = document.getElementById('btn-play-pause');
+            const playIcon = document.getElementById('play-icon');
+            const playText = document.getElementById('play-text');
+
+            if (isPlaying) {
+                playIcon.className = "fa-solid fa-pause";
+                playText.innerText = "Pause";
+                btnPlay.className = "px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition shadow-lg shadow-amber-600/10 active:scale-95 flex items-center gap-2 border border-amber-400/20";
+            } else {
+                playIcon.className = "fa-solid fa-play";
+                playText.innerText = "Auto Solve";
+                btnPlay.className = "px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-2 border border-indigo-400/20";
+            }
+
+            // Disable forward / backward items based on index limit checkpoints
+            const isAtStart = currentMoveIndex === -1;
+            const isAtEnd = currentMoveIndex === precomputedMoves.length - 1;
+
+            document.getElementById('btn-step-back').disabled = isAtStart || isAnimating;
+            document.getElementById('btn-skip-start').disabled = isAtStart || isAnimating;
+            document.getElementById('btn-step-next').disabled = isAtEnd || isAnimating;
+            document.getElementById('btn-skip-end').disabled = isAtEnd || isAnimating;
+        }
+
+        // Toggle active play loop
+        function togglePlayback() {
+            if (isAnimating) return;
+            if (isPlaying) {
+                pausePlayback();
+            } else {
+                startPlayback();
+            }
+        }
+
+        function startPlayback() {
+            if (currentMoveIndex === precomputedMoves.length - 1) {
+                // If finished and pressed play, restart loop
+                currentMoveIndex = -1;
+                rebuildBoardStateToCurrentIndex();
+                snapDisksInstant();
+            }
+            isPlaying = true;
+            updatePlaybackButtons();
+            playLoop();
+        }
+
+        function pausePlayback() {
+            isPlaying = false;
+            updatePlaybackButtons();
+        }
+
+        // Loop Runner inside play/pause threads
+        async function playLoop() {
+            while (isPlaying && currentMoveIndex < precomputedMoves.length - 1) {
+                if (isAnimating) {
+                    await sleep(50);
+                    continue;
+                }
+                await stepTimeline(1);
+            }
+            if (currentMoveIndex === precomputedMoves.length - 1) {
+                pausePlayback();
+                showStatusMessage("Optimal solution completed successfully!", "success");
+                
+                // Add celebration finish
+                confetti({
+                    particleCount: 80,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        // Advance or backstep time pointers
+        async function stepTimeline(direction) {
+            if (isAnimating) return;
+
+            const nextIndex = currentMoveIndex + direction;
+            if (nextIndex < -1 || nextIndex >= precomputedMoves.length) return;
+
+            isAnimating = true;
+            updatePlaybackButtons();
+
+            if (direction === 1) {
+                // Moving forward: Execute targeted step
+                currentMoveIndex = nextIndex;
+                const activeMove = precomputedMoves[currentMoveIndex];
+                
+                // Track trace stats
+                document.getElementById('current-moves-badge').innerText = currentMoveIndex + 1;
+                showStatusMessage(`Solver moving Disk ${activeMove.disk} from Peg ${activeMove.from} to Peg ${activeMove.to}`, "success");
+
+                // Highlight Trace Windows
+                updatePseudoCodeHighlight(activeMove.codeLine);
+                updateCallStackView(activeMove.stackSnapshot);
+
+                // Update absolute internal structural maps before sliding visually
+                boardState[activeMove.from].pop();
+                const targetPos = boardState[activeMove.to].length;
+                boardState[activeMove.to].push(activeMove.disk);
+
+                // Perform physics animation sequence
+                await runPhysicsAnimation(activeMove.disk, activeMove.from, activeMove.to, targetPos);
+            } else {
+                // Moving backward: Revert step (move back target to source)
+                const activeMove = precomputedMoves[currentMoveIndex];
+                currentMoveIndex = nextIndex;
+
+                // Track reverse stats
+                document.getElementById('current-moves-badge').innerText = currentMoveIndex + 1;
+                showStatusMessage(`Reverting Move: Disk ${activeMove.disk} to Peg ${activeMove.from}`, "warning");
+
+                // Update Code pointers to matching inverse steps
+                if (currentMoveIndex >= 0) {
+                    const prevMove = precomputedMoves[currentMoveIndex];
+                    updatePseudoCodeHighlight(prevMove.codeLine);
+                    updateCallStackView(prevMove.stackSnapshot);
+                } else {
+                    updatePseudoCodeHighlight(0);
+                    updateCallStackView([]);
+                }
+
+                // Update physical states
+                boardState[activeMove.to].pop();
+                const targetPos = boardState[activeMove.from].length;
+                boardState[activeMove.from].push(activeMove.disk);
+
+                // Perform physics visual animation
+                await runPhysicsAnimation(activeMove.disk, activeMove.to, activeMove.from, targetPos);
+            }
+
+            isAnimating = false;
+            updateLogView();
+            updatePlaybackButtons();
+        }
+
+        // Jumps timeline pointer to specific snapshot instants without delays
+        function jumpTimeline(index) {
+            if (isAnimating) return;
+            
+            pausePlayback();
+            currentMoveIndex = index - 1;
+            
+            rebuildBoardStateToCurrentIndex();
+            snapDisksInstant();
+            
+            // Adjust trackers
+            document.getElementById('current-moves-badge').innerText = currentMoveIndex + 1;
+            
+            if (currentMoveIndex >= 0) {
+                const activeMove = precomputedMoves[currentMoveIndex];
+                updatePseudoCodeHighlight(activeMove.codeLine);
+                updateCallStackView(activeMove.stackSnapshot);
+                showStatusMessage(`Jumped to step ${index} of ${precomputedMoves.length}`, "success");
+            } else {
+                updatePseudoCodeHighlight(0);
+                updateCallStackView([]);
+                showStatusMessage("Rewound to start condition", "success");
+            }
+
+            updateLogView();
+            updatePlaybackButtons();
+        }
+
+        // Regenerates data states matching target timeline offset index
+        function rebuildBoardStateToCurrentIndex() {
+            boardState = {
+                'A': [],
+                'B': [],
+                'C': []
+            };
+            for (let i = numDisks; i >= 1; i--) {
+                boardState['A'].push(i);
+            }
+
+            // Iterate and apply sequential steps up to current pointer
+            for (let i = 0; i <= currentMoveIndex; i++) {
+                const m = precomputedMoves[i];
+                boardState[m.from].pop();
+                boardState[m.to].push(m.disk);
+            }
+        }
+
+        // Modal triggers
+        function showQuickInstructions(e) {
+            if (e) e.preventDefault();
+            document.getElementById('instructions-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('instructions-modal').classList.add('hidden');
+        }
+
+        // Trigger instruction guide on load
+        document.getElementById('guide-btn').addEventListener('click', () => {
+            showQuickInstructions();
+        });
+    </script>
+</body>
+</html>
